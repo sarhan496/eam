@@ -1,0 +1,168 @@
+<?php
+require_once('Connections/eam.php');
+
+// Enterprise Asset Management - Sarhan //
+$currentPage = $_SERVER["PHP_SELF"];
+
+$maxRows_rsHardwareAssets = 50;
+$pageNum_rsHardwareAssets = 0;
+if (isset($_GET['pageNum_rsHardwareAssets'])) {
+    $pageNum_rsHardwareAssets = $_GET['pageNum_rsHardwareAssets'];
+}
+$startRow_rsHardwareAssets = $pageNum_rsHardwareAssets * $maxRows_rsHardwareAssets;
+
+$eam = new mysqli($host, $user, $pass, $db);
+if ($eam->connect_error) {
+    die("Connection failed: " . $eam->connect_error);
+}
+
+$query_rsHardwareAssets = "SELECT * FROM assets_hardware WHERE assets_hardware.status = 'Inventory' ";
+$query_limit_rsHardwareAssets = sprintf("%s LIMIT %d, %d", $query_rsHardwareAssets, $startRow_rsHardwareAssets, $maxRows_rsHardwareAssets);
+$rsHardwareAssets = $eam->query($query_limit_rsHardwareAssets) or die($eam->error);
+$row_rsHardwareAssets = $rsHardwareAssets->fetch_assoc();
+
+if (isset($_GET['totalRows_rsHardwareAssets'])) {
+    $totalRows_rsHardwareAssets = $_GET['totalRows_rsHardwareAssets'];
+} else {
+    $all_rsHardwareAssets = $eam->query($query_rsHardwareAssets);
+    $totalRows_rsHardwareAssets = $all_rsHardwareAssets->num_rows;
+}
+$totalPages_rsHardwareAssets = ceil($totalRows_rsHardwareAssets / $maxRows_rsHardwareAssets) - 1;
+
+$query_rsVendors = "SELECT * FROM vendors";
+$rsVendors = $eam->query($query_rsVendors) or die($eam->error);
+$row_rsVendors = $rsVendors->fetch_assoc();
+$totalRows_rsVendors = $rsVendors->num_rows;
+
+$query_rsPlatform = "SELECT * FROM assets_hardware_platform";
+$rsPlatform = $eam->query($query_rsPlatform) or die($eam->error);
+$row_rsPlatform = $rsPlatform->fetch_assoc();
+$totalRows_rsPlatform = $rsPlatform->num_rows;
+
+$colname_rsHardwareUpdate = "-1";
+if (isset($_GET['recordID'])) {
+    $colname_rsHardwareUpdate = $_GET['recordID'];
+}
+
+$query_rsHardwareUpdate = "SELECT * FROM assets_hardware WHERE asset_hardware_id = ?";
+$stmt = $eam->prepare($query_rsHardwareUpdate);
+$stmt->bind_param("s", $colname_rsHardwareUpdate);
+$stmt->execute();
+$rsHardwareUpdate = $stmt->get_result();
+$row_rsHardwareUpdate = $rsHardwareUpdate->fetch_assoc();
+$totalRows_rsHardwareUpdate = $rsHardwareUpdate->num_rows;
+
+$query_rsDivision = "SELECT * FROM division";
+$rsDivision = $eam->query($query_rsDivision) or die($eam->error);
+$row_rsDivision = $rsDivision->fetch_assoc();
+$totalRows_rsDivision = $rsDivision->num_rows;
+
+$query_rsHardwareType = "SELECT * FROM assets_hardware_type";
+$rsHardwareType = $eam->query($query_rsHardwareType) or die($eam->error);
+$row_rsHardwareType = $rsHardwareType->fetch_assoc();
+$totalRows_rsHardwareType = $rsHardwareType->num_rows;
+
+$query_rsLocation = "SELECT * FROM location";
+$rsLocation = $eam->query($query_rsLocation) or die($eam->error);
+$row_rsLocation = $rsLocation->fetch_assoc();
+$totalRows_rsLocation = $rsLocation->num_rows;
+
+$query_rsHardwareStatus = "SELECT * FROM assets_hardware_status";
+$rsHardwareStatus = $eam->query($query_rsHardwareStatus) or die($eam->error);
+$row_rsHardwareStatus = $rsHardwareStatus->fetch_assoc();
+$totalRows_rsHardwareStatus = $rsHardwareStatus->num_rows;
+
+$queryString_rsHardwareAssets = "";
+if (!empty($_SERVER['QUERY_STRING'])) {
+    $params = explode("&", $_SERVER['QUERY_STRING']);
+    $newParams = array();
+    foreach ($params as $param) {
+        if (stristr($param, "pageNum_rsHardwareAssets") === false &&
+            stristr($param, "totalRows_rsHardwareAssets") === false) {
+            array_push($newParams, $param);
+        }
+    }
+    if (count($newParams) !== 0) {
+        $queryString_rsHardwareAssets = "&" . htmlentities(implode("&", $newParams));
+    }
+}
+$queryString_rsHardwareAssets = sprintf("&totalRows_rsHardwareAssets=%d%s", $totalRows_rsHardwareAssets, $queryString_rsHardwareAssets);
+?>
+
+<?php $pageTitle = "Hardware Assets List"; ?>
+<?php include('includes/header.php'); ?>
+<h3>Hardware Assets </h3>
+<table class="table1">
+    <tr>
+        <th>Asset Type</th>
+        <th>Vendor</th>
+        <th>Model</th>
+        <th>Platform</th>
+        <th>Location</th>
+        <th>Status</th>
+        <th>User</th>
+        <th>Division</th>
+        <th>View &nbsp; </th>
+        <th>Edit &nbsp; </th>
+    </tr>
+    <?php do { ?>
+        <tr onmouseover="this.bgColor='#F2F7FF'" onmouseout="this.bgColor='#FFFFFF'";>
+            <td> <?php echo $row_rsHardwareAssets['asset_type']; ?>&nbsp; </td>
+            <td> <?php echo $row_rsHardwareAssets['vendor']; ?>&nbsp; </td>
+            <td> <?php echo $row_rsHardwareAssets['model']; ?>&nbsp; </td>
+            <td> <?php echo $row_rsHardwareAssets['platform']; ?>&nbsp; </td>
+            <td> <?php echo $row_rsHardwareAssets['location']; ?>&nbsp; </td>
+            <td> <?php echo $row_rsHardwareAssets['status']; ?>&nbsp; </td>
+            <td> <?php echo $row_rsHardwareAssets['user']; ?>&nbsp; </td>
+            <td> <?php echo $row_rsHardwareAssets['division']; ?>&nbsp; </td>
+            <td> <a href="HardwareDetail.php?recordID=<?php echo $row_rsHardwareAssets['asset_hardware_id']; ?>">View</a></td>
+            <td> <a href="HardwareUpdate.php?recordID=<?php echo $row_rsHardwareAssets['asset_hardware_id']; ?>">Edit</a></td>
+        </tr>
+    <?php } while ($row_rsHardwareAssets = $rsHardwareAssets->fetch_assoc()); ?>
+</table>
+<table class="pagination">
+    <tr>
+        <td>Records <?php echo ($startRow_rsHardwareAssets + 1) ?> to <?php echo min($startRow_rsHardwareAssets + $maxRows_rsHardwareAssets, $totalRows_rsHardwareAssets) ?> of <?php echo $totalRows_rsHardwareAssets ?></td>
+        <td>
+            <table>
+                <tr>
+                    <?php if ($pageNum_rsHardwareAssets > 0) { // Show if not first page ?>
+                        <td width="23%" align="center">
+                            <a href="<?php printf("%s?pageNum_rsHardwareAssets=%d%s", $currentPage, 0, $queryString_rsHardwareAssets); ?>">First</a>
+                        </td>
+                    <?php } // Show if not first page ?>
+
+                    <?php if ($pageNum_rsHardwareAssets > 0) { // Show if not first page ?>
+                        <td width="31%" align="center">
+                            <a href="<?php printf("%s?pageNum_rsHardwareAssets=%d%s", $currentPage, max(0, $pageNum_rsHardwareAssets - 1), $queryString_rsHardwareAssets); ?>">Previous</a>
+                        </td>
+                    <?php } // Show if not first page ?>
+
+                    <?php if ($pageNum_rsHardwareAssets < $totalPages_rsHardwareAssets) { // Show if not last page ?>
+                        <td width="23%" align="center">
+                            <a href="<?php printf("%s?pageNum_rsHardwareAssets=%d%s", $currentPage, min($totalPages_rsHardwareAssets, $pageNum_rsHardwareAssets + 1), $queryString_rsHardwareAssets); ?>">Next</a>
+                        </td>
+                    <?php } // Show if not last page ?>
+
+                    <?php if ($pageNum_rsHardwareAssets < $totalPages_rsHardwareAssets) { // Show if not last page ?>
+                        <td width="23%" align="center">
+                            <a href="<?php printf("%s?pageNum_rsHardwareAssets=%d%s", $currentPage, $totalPages_rsHardwareAssets, $queryString_rsHardwareAssets); ?>">Last</a>
+                        </td>
+                    <?php } // Show if not last page ?>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+<?php include('includes/footer.php'); ?>
+<?php
+$rsHardwareAssets->free();
+$rsVendors->free();
+$rsPlatform->free();
+$rsHardwareUpdate->free();
+$rsDivision->free();
+$rsHardwareType->free();
+$rsLocation->free();
+$rsHardwareStatus->free();
+$eam->close();
+?>
